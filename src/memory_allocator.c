@@ -287,139 +287,105 @@ void memfree(void* ptr)
 
 }
 
-void* memresize(void* ptr, size_t new_size) 
+void* memresize(void* ptr, size_t new_size)
 {
+    // Case 1: null pointer allocate new block
+    if (!ptr) return memalloc(new_size);
 
-    // Case 1: requested size is 0 → free block
+    // Case 2: requested size is 0 free block
     if (new_size == 0) {
-        if (ptr) {
-            memfree(ptr);
-        }
+        memfree(ptr);
         return NULL;
     }
 
-    // Case 2: null pointer → allocate new block
-    if (!ptr) {
-        void* new_ptr = memalloc(new_size);
-        if (!new_ptr) {
-            perror("memalloc");
-            return NULL;
-        }
-        return new_ptr;
-    }
-
-    // Get block header and compute sizes
-    block_header* ptr_hdr = (block_header*)((char*)ptr - BLOCK_HEADER_SIZE);
-    size_t old_size = ptr_hdr->size;
+    block_header* hdr = (block_header*)((char*)ptr - BLOCK_HEADER_SIZE);
+    size_t old_size = hdr->size;
     size_t required_size = ROUND_UP(new_size, ALIGNMENT);
 
-    // Case 3: requested size equals current size → return ptr
-    if (required_size == old_size) {
-        return ptr;
-    }
+    // Case 3: requested size equals current size  return ptr
+    if (required_size == old_size) return ptr;
 
-    // Case 4: grow block
-    if (required_size > old_size) {
-        // Try to merge with right neighbor
-        block_header* right_hdr = (block_header*)((char*)ptr_hdr + BLOCK_HEADER_SIZE + old_size + BLOCK_FOOTER_SIZE);
-        bool has_right = (heap_start && heap_end) &&
-                         ((char*)right_hdr >= (char*)heap_start) &&
-                         ((char*)right_hdr < (char*)heap_end);
-
-        if (has_right && right_hdr->is_free) {
-            size_t merged_size = old_size + BLOCK_HEADER_SIZE + right_hdr->size + BLOCK_FOOTER_SIZE;
-
-            if (merged_size >= required_size) {
-                // Remove right from free list
-                if (right_hdr->prev_block) right_hdr->prev_block->next_block = right_hdr->next_block;
-                if (right_hdr->next_block) right_hdr->next_block->prev_block = right_hdr->prev_block;
-                if (free_list == right_hdr) free_list = right_hdr->next_block;
-
-                // Expand current block
-                ptr_hdr->size = merged_size;
-
-                // Update footer
-                block_footer* ftr = (block_footer*)((char*)ptr_hdr + BLOCK_HEADER_SIZE + merged_size - BLOCK_FOOTER_SIZE);
-                ftr->size = merged_size;
-
-                // Split leftover if any
-                size_t leftover = merged_size - required_size;
-                if (leftover >= ROUND_UP(MIN_SPLIT, ALIGNMENT)) {
-                    ptr_hdr->size = required_size;
-
-                    // New footer for allocated block
-                    block_footer* alloc_ftr = (block_footer*)((char*)ptr + required_size - BLOCK_FOOTER_SIZE);
-                    alloc_ftr->size = required_size;
-
-                    // New free block
-                    block_header* new_free = (block_header*)((char*)ptr_hdr + BLOCK_HEADER_SIZE + required_size);
-                    new_free->size = leftover;
-                    new_free->is_free = TRUE;
-                    new_free->prev_block = new_free->next_block = NULL;
-
-                    block_footer* free_ftr = (block_footer*)((char*)new_free + leftover - BLOCK_FOOTER_SIZE);
-                    free_ftr->size = leftover;
-
-                    insert_at_tail_free_list(new_free);
-                }
-
-                return ptr; // expanded in-place
-            }
-        }
-
-        // Scan free list for a suitable block
-        block_header* curr = free_list;
-        while (curr) {
-            if (curr->is_free && curr->size >= required_size) {
-                // unlink from free list
-                if (curr->prev_block) curr->prev_block->next_block = curr->next_block;
-                if (curr->next_block) curr->next_block->prev_block = curr->prev_block;
-                if (free_list == curr) free_list = curr->next_block;
-
-                void* new_ptr = (void*)((char*)curr + BLOCK_HEADER_SIZE);
-                memcpy(new_ptr, ptr, old_size);
-                memfree(ptr);
-                return new_ptr;
-            }
-            curr = curr->next_block;
-        }
-
-        // allocate new block
-        void* new_ptr = memalloc(required_size);
-        if (!new_ptr) return NULL;
-        memcpy(new_ptr, ptr, old_size);
-        memfree(ptr);
-        return new_ptr;
-    }
-
-    // Case 5: shrink block
     if (required_size < old_size) {
         size_t leftover = old_size - required_size;
 
         if (leftover >= ROUND_UP(MIN_SPLIT, ALIGNMENT)) {
-            // Shrink current block
-            ptr_hdr->size = required_size;
+            // shrink current block
+            hdr->size = required_size;
 
-            // New footer for allocated block
-            block_footer* alloc_ftr = (block_footer*)((char*)ptr + required_size - BLOCK_FOOTER_SIZE);
+            // update footer of allocated block
+            block_footer* alloc_ftr = (block_footer*)((char*)hdr + BLOCK_HEADER_SIZE + required_size);
             alloc_ftr->size = required_size;
 
-            // Create new free block
-            block_header* new_free = (block_header*)((char*)ptr_hdr + BLOCK_HEADER_SIZE + required_size);
-            new_free->size = leftover;
+            // create new free block from leftover
+            block_header* new_free = (block_header*)((char*)alloc_ftr + BLOCK_FOOTER_SIZE);
+            new_free->size = leftover - (BLOCK_HEADER_SIZE + BLOCK_FOOTER_SIZE);
             new_free->is_free = TRUE;
             new_free->prev_block = new_free->next_block = NULL;
 
-            block_footer* free_ftr = (block_footer*)((char*)new_free + leftover - BLOCK_FOOTER_SIZE);
-            free_ftr->size = leftover;
+            block_footer* free_ftr = (block_footer*)((char*)new_free + BLOCK_HEADER_SIZE + new_free->size);
+            free_ftr->size = new_free->size;
 
+            // insert leftover into free list
             insert_at_tail_free_list(new_free);
         }
 
         return ptr;
     }
 
-    return NULL; // fallback, should not reach here
+    block_header* right_hdr = (block_header*)((char*)hdr + BLOCK_HEADER_SIZE + old_size + BLOCK_FOOTER_SIZE);
+    bool has_right = (heap_start && heap_end) &&
+                    ((char*)right_hdr >= (char*)heap_start) &&
+                    ((char*)right_hdr < (char*)heap_end);
+
+    // attempt in-place expansion by merging with right free block
+    if (has_right && right_hdr->is_free) {
+        size_t merged_payload = old_size + right_hdr->size + BLOCK_HEADER_SIZE + BLOCK_FOOTER_SIZE;
+
+        if (merged_payload >= required_size) {
+            // unlink right block from free list
+            unlink_from_free_list(right_hdr);
+
+            // expand current block
+            hdr->size = merged_payload;
+
+            block_footer* ftr = (block_footer*)((char*)hdr + BLOCK_HEADER_SIZE + hdr->size);
+            ftr->size = hdr->size;
+
+            // split leftover if any
+            size_t leftover = merged_payload - required_size;
+            if (leftover >= ROUND_UP(MIN_SPLIT, ALIGNMENT)) {
+                hdr->size = required_size;
+
+                // new footer for allocated block
+                block_footer* alloc_ftr = (block_footer*)((char*)hdr + BLOCK_HEADER_SIZE + required_size);
+                alloc_ftr->size = required_size;
+
+                // leftover free block
+                block_header* new_free = (block_header*)((char*)alloc_ftr + BLOCK_FOOTER_SIZE);
+                new_free->size = leftover - (BLOCK_HEADER_SIZE + BLOCK_FOOTER_SIZE);
+                new_free->is_free = TRUE;
+                new_free->prev_block = new_free->next_block = NULL;
+
+                block_footer* free_ftr = (block_footer*)((char*)new_free + BLOCK_HEADER_SIZE + new_free->size);
+                free_ftr->size = new_free->size;
+
+                insert_at_tail_free_list(new_free);
+            }
+
+            return ptr; 
+        }
+    }
+
+    void* new_ptr = memalloc(required_size);
+    if (!new_ptr) return NULL;
+
+    // copy old content
+    memcpy(new_ptr, ptr, old_size);
+
+    // free old block
+    memfree(ptr);
+
+    return new_ptr;
 
 }
 
