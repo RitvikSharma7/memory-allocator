@@ -111,6 +111,19 @@ int main() {
     memfree(arr);
 }
 ```
+---
+
+## Room for Improvement / Future Enhancements 
+The allocator is currently not thread-safe. Adding mutexes or per-thread arenas would allow safe usage in multithreaded programs.  
+Segregated Free Lists / Binning  
+Introducing bins (size-segregated lists) would significantly improve allocation speed and reduce fragmentation.   
+There are no guard bytes or canaries to detect writes beyond the payload.  
+Making it adaptive or tunable based on workload could improve performance.  
+More Sophisticated Coalescing   
+Alignment Improvements  
+Memory is aligned, but adding support for user-requested or higher alignment (e.g., 32/64-byte for SIMD) would extend capabilities.  
+Better Error Handling & Debug Tools  
+
 
 ---
 
