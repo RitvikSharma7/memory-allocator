@@ -18,6 +18,8 @@ mmap_test: test_mmap.c $(SRC) $(HDR)
 stress_test: test_stress.c $(SRC) $(HDR)
 	$(CC) $(CFLAGS) test_stress.c $(SRC) -o p3
 
+tests: basic_test mmap_test stress_test
+
 clean:
 	rm -f p1 p2 p3
 
