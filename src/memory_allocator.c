@@ -58,7 +58,7 @@ void* memalloc(size_t requested_size)
     size_t mmap_total  = ROUND_UP(mmap_prelim, ALIGNMENT);
 
 
-    if (mmap_total >= MMAP_THRESHOLD)
+    if (mmap_total >= MMAP_THRESHOLD) //request mmap memory
     {
         void* mmap_mem = mmap(NULL, mmap_total,
                               PROT_READ | PROT_WRITE,
@@ -201,7 +201,7 @@ void* defalloc(size_t num_elements, size_t element_size){
     if (!ptr) {
         return NULL;
     }
-    return memoryset(ptr, 0, total_size);
+    return memoryset(ptr, 0, total_size); // set each byte to 0
 }
 
 void memfree(void* ptr) {
@@ -414,6 +414,7 @@ void* memresize(void* ptr, size_t new_size) {
     return NULL; // fallback, should not reach here
 }
 
+// custom memset function
 void* memoryset(void* ptr, int c, size_t n) {
     if (!ptr) return ptr;
 
@@ -439,7 +440,7 @@ void* memoryset(void* ptr, int c, size_t n) {
     return ptr;
 }
 
-
+// custom memdup function (helper)
 void* memdup(const void* ptr, size_t size){
     if (ptr == NULL || size == 0)
         return NULL;
@@ -463,6 +464,7 @@ void* memdup(const void* ptr, size_t size){
     return dup;
 }
 
+//helper function to detach from free list
 static void unlink_from_free_list(block_header* b) {
     if (!b) return;
     if (b->prev_block) {
@@ -477,6 +479,7 @@ static void unlink_from_free_list(block_header* b) {
     b->next_block = NULL;
 }
 
+//helper function to put free block at end of free list
 static void insert_at_tail_free_list(block_header* h) {
     if (!free_list) {
         h->prev_block = NULL;
