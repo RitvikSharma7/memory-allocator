@@ -13,6 +13,8 @@ A lightweight custom memory allocator written in C, implementing:
 
 This project was built to deeply understand how `malloc`, `free`, and `realloc` behave internally.
 
+For a more complete explanation of how memory is laid out inside a process and how allocators operate under the hood, you can read my detailed article in the [docs](docs/Introduction_Memory_Internals.md) folder
+
 ---
 
 ## Features
