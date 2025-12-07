@@ -99,7 +99,7 @@ This project was created to:
 ## Example Usage
 
 ```c
-#include "memoryallocator.h"
+#include "memory_allocator.h"
 
 int main() {
     int* arr = memalloc(10 * sizeof(int));
