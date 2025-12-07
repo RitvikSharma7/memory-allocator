@@ -189,7 +189,9 @@ allocation:
 }
 
 
-void* defalloc(size_t num_elements, size_t element_size){
+void* defalloc(size_t num_elements, size_t element_size)
+{
+
     if (num_elements == 0 || element_size == 0){
         return NULL;
     }
@@ -202,9 +204,12 @@ void* defalloc(size_t num_elements, size_t element_size){
         return NULL;
     }
     return memoryset(ptr, 0, total_size); // set each byte to 0
+
 }
 
-void memfree(void* ptr) {
+void memfree(void* ptr)
+{
+
     if (!ptr) return;
 
     // detect mmap block safely
@@ -279,9 +284,12 @@ void memfree(void* ptr) {
     block_footer* new_ftr = (block_footer*)((char*)new_hdr + BLOCK_HEADER_SIZE + new_payload);
     new_ftr->size = new_payload;
     insert_at_tail_free_list(new_hdr);
+
 }
 
-void* memresize(void* ptr, size_t new_size) {
+void* memresize(void* ptr, size_t new_size) 
+{
+
     // Case 1: requested size is 0 → free block
     if (new_size == 0) {
         if (ptr) {
@@ -412,10 +420,13 @@ void* memresize(void* ptr, size_t new_size) {
     }
 
     return NULL; // fallback, should not reach here
+
 }
 
 // custom memset function
-void* memoryset(void* ptr, int c, size_t n) {
+void* memoryset(void* ptr, int c, size_t n) 
+{
+
     if (!ptr) return ptr;
 
     unsigned char byte_value = (unsigned char)c;
@@ -438,10 +449,13 @@ void* memoryset(void* ptr, int c, size_t n) {
     }
 
     return ptr;
+
 }
 
 // custom memdup function (helper)
-void* memdup(const void* ptr, size_t size){
+void* memdup(const void* ptr, size_t size)
+{
+
     if (ptr == NULL || size == 0)
         return NULL;
 
@@ -462,10 +476,13 @@ void* memdup(const void* ptr, size_t size){
     }
 
     return dup;
+
 }
 
 //helper function to detach from free list
-static void unlink_from_free_list(block_header* b) {
+static void unlink_from_free_list(block_header* b) 
+{
+
     if (!b) return;
     if (b->prev_block) {
         ((block_header*)b->prev_block)->next_block = b->next_block;
@@ -477,10 +494,13 @@ static void unlink_from_free_list(block_header* b) {
     }
     b->prev_block = NULL;
     b->next_block = NULL;
+
 }
 
 //helper function to put free block at end of free list
-static void insert_at_tail_free_list(block_header* h) {
+static void insert_at_tail_free_list(block_header* h) 
+{
+
     if (!free_list) {
         h->prev_block = NULL;
         h->next_block = NULL;
@@ -494,6 +514,7 @@ static void insert_at_tail_free_list(block_header* h) {
     curr->next_block = h;
     h->prev_block = curr;
     h->next_block = NULL;
+    
 }
 
 
