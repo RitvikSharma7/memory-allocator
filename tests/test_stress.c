@@ -3,7 +3,7 @@
 #include <time.h>
 #include "memory_allocator.h"
 
-#define N 10
+#define N 5000
 
 int main() {
     printf("Stress testing allocator...\n");
@@ -32,5 +32,6 @@ int main() {
 
     printf("PASS: stress test passed\n");
     return 0;
+
 
 }
