@@ -61,13 +61,13 @@ void* memoryset(void* ptr, int c, size_t size);
 ## Build
 
 ```bash
-make
+make test_[type]
 ```
 
 Produces:
 
 ```
-./a.out
+./p[n].out
 ```
 
 ---
@@ -76,13 +76,6 @@ Produces:
 
 ```bash
 make tests
-```
-
-Or compile a specific test:
-
-```bash
-gcc -I./src src/memoryallocator.c tests/test_basic.c -o test_basic
-./test_basic
 ```
 
 ---
