@@ -7,7 +7,6 @@ SRC = memory_allocation.c
 HDR = memory_allocation.h
 
 # Targets
-all: basic_test mmap_test stress_test
 
 basic_test: test_basic.c $(SRC) $(HDR)
 	$(CC) $(CFLAGS) test_basic.c $(SRC) -o p1
@@ -23,4 +22,4 @@ tests: basic_test mmap_test stress_test
 clean:
 	rm -f p1 p2 p3
 
-.PHONY: all basic_test mmap_test stress_test clean
+.PHONY: basic_test mmap_test stress_test tests clean
