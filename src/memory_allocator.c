@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -13,6 +14,7 @@
 static void* free_list = NULL;
 static void* heap_start = NULL;
 static void* heap_end = NULL;
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define PAGE_SIZE 0x4000
 #define MMAP_THRESHOLD 0x20000
@@ -153,6 +155,7 @@ void* memalloc(size_t requested_size)
     if (requested_size == 0)
         return NULL;
 
+    pthread_mutex_lock(&lock);
     void* user_ptr = NULL;
 
     size_t prelim_size = BLOCK_HEADER_SIZE + requested_size + BLOCK_FOOTER_SIZE;
@@ -170,12 +173,14 @@ void* memalloc(size_t requested_size)
 
         if (mmap_mem == MAP_FAILED) {
             perror("mmap");
+            pthread_mutex_unlock(&lock);
             return NULL;
         }
 
         mmap_block_header* h = (mmap_block_header*)mmap_mem;
         h->size = mmap_total - MMAP_HEADER_SIZE;
         h->is_mmap = TRUE;
+        pthread_mutex_unlock(&lock);
         return (char*)h + MMAP_HEADER_SIZE;
     }
 
@@ -188,6 +193,7 @@ void* memalloc(size_t requested_size)
         void* region = sbrk(PAGE_SIZE);
         if (region == (void*)-1) {
             perror("sbrk");
+            pthread_mutex_unlock(&lock);
             return NULL;
         }
         heap_end = (char*)heap_start + PAGE_SIZE;
@@ -244,7 +250,7 @@ retry_allocation:
                 new_f->size = new_payload;
 
                 insert_at_tail_free_list(new_h);
-
+                pthread_mutex_unlock(&lock);
                 return (char*)curr + BLOCK_HEADER_SIZE;
             }
 
@@ -257,7 +263,7 @@ retry_allocation:
             f->size = curr->size;
 
             unlink_from_free_list(curr);
-
+            pthread_mutex_unlock(&lock);
             return (char*)curr + BLOCK_HEADER_SIZE;
         }
 
@@ -268,6 +274,7 @@ retry_allocation:
     void* region = sbrk(PAGE_SIZE);
     if (region == (void*)-1) {
         perror("sbrk failed");
+        pthread_mutex_unlock(&lock);
         return NULL;
     }
     heap_end = (char*)heap_end + PAGE_SIZE;
@@ -294,12 +301,16 @@ void* defalloc(size_t num_elements, size_t element_size)
     if (num_elements > SIZE_MAX / element_size){ // overflow (too many elements)
         return NULL;
     }
+    pthread_mutex_lock(&lock);
     size_t total_size = num_elements * element_size;
     void* ptr = memalloc(total_size);
     if (!ptr) {
+        pthread_mutex_unlock(&lock);
         return NULL;
     }
-    return memoryset(ptr, 0, total_size); // set each byte to 0
+    memoryset(ptr, 0, total_size); // set each byte to 0
+    pthread_mutex_unlock(&lock);
+    return ptr; 
 
 }
 
@@ -307,7 +318,7 @@ void memfree(void* ptr)
 {
 
     if (!ptr) return;
-
+    pthread_mutex_lock(&lock);
     // detect mmap block safely
     /* If ptr outside heap range, treat as mmap'ed block.
        If heap_start/heap_end are not initialized, fall back to checking header flag (best-effort). */
@@ -319,6 +330,7 @@ void memfree(void* ptr)
                 if (munmap((void*)mh, total) == -1) {
                     perror("munmap failed");
                 }
+                pthread_mutex_unlock(&lock);
                 return;
             } else {
                 /* Not mmap - treat as heap block (defensive). */
@@ -332,6 +344,7 @@ void memfree(void* ptr)
             if (munmap((void*)mh, total) == -1) {
                 perror("munmap failed");
             }
+            pthread_mutex_unlock(&lock);
             return;
         }
     }
@@ -388,7 +401,7 @@ void memfree(void* ptr)
     if (!new_hdr->prev_block && !new_hdr->next_block) {
         insert_at_tail_free_list(new_hdr);
     }
-
+    pthread_mutex_unlock(&lock);
 }
 
 void* memresize(void* ptr, size_t new_size)
@@ -401,13 +414,16 @@ void* memresize(void* ptr, size_t new_size)
         memfree(ptr);
         return NULL;
     }
-
+    pthread_mutex_lock(&lock);
     block_header* hdr = (block_header*)((char*)ptr - BLOCK_HEADER_SIZE);
     size_t old_size = hdr->size;
     size_t required_size = ROUND_UP(new_size, ALIGNMENT);
 
     // Case 3: requested size equals current size  return ptr
-    if (required_size == old_size) return ptr;
+    if (required_size == old_size){
+        pthread_mutex_unlock(&lock);
+        return ptr;
+    }
 
     if (required_size < old_size) {
         size_t leftover = old_size - required_size;
@@ -432,7 +448,7 @@ void* memresize(void* ptr, size_t new_size)
             // insert leftover into free list
             insert_at_tail_free_list(new_free);
         }
-
+        pthread_mutex_unlock(&lock);
         return ptr;
     }
 
@@ -475,20 +491,23 @@ void* memresize(void* ptr, size_t new_size)
 
                 insert_at_tail_free_list(new_free);
             }
-
+            pthread_mutex_unlock(&lock);
             return ptr; 
         }
     }
 
+    pthread_mutex_unlock(&lock);
+
     void* new_ptr = memalloc(required_size);
-    if (!new_ptr) return NULL;
+    if (!new_ptr){
+        return NULL;
+    }
 
     // copy old content
     memcpy(new_ptr, ptr, old_size);
 
     // free old block
     memfree(ptr);
-
     return new_ptr;
 
 }

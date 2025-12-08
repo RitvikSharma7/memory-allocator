@@ -18,8 +18,8 @@
  *
  * @param requested_size Number of bytes to allocate.
  * @return void* Pointer to allocated memory, or NULL if allocation fails.
- * @note This allocator is not thread-safe. Use synchronization primitives if
- * used in multithreaded code.
+ * @note This allocator is now thread-safe.
+ * 
  */
 void* memalloc(size_t requested_size);
 
@@ -36,7 +36,7 @@ void* memalloc(size_t requested_size);
  * @param num_elements Number of elements to allocate memory for.
  * @param element_size Size of each element in bytes.
  * @return void* Pointer to zero-initialized memory, or NULL if allocation fails.
- * @note Memory is aligned to 16 bytes. Not thread-safe.
+ * @note Memory is aligned to 16 bytes. It is now thread-safe.
  */
 void* defalloc(size_t num_elements, size_t element_size);
 
@@ -69,7 +69,7 @@ void memfree(void* ptr);
  * @param ptr Pointer to memory to resize. Can be NULL.
  * @param new_size New size in bytes.
  * @return void* Pointer to resized memory block, or NULL if allocation fails.
- * @note Not thread-safe. May lead to fragmentation under heavy use.
+ * @note It is Thread-safe. May lead to fragmentation under heavy use.
  */
 void* memresize(void* ptr, size_t new_size);
 
