@@ -107,7 +107,7 @@ int main() {
 ---
 
 ## Room for Improvement / Future Enhancements 
-The allocator is currently not thread-safe. Adding mutexes or per-thread arenas would allow safe usage in multithreaded programs.  
+The allocator is thread-safe. Adding per-thread arenas would allow for more safer usage in multithreaded programs.  
 Segregated Free Lists / Binning  
 Introducing bins (size-segregated lists) would significantly improve allocation speed and reduce fragmentation.   
 There are no guard bytes or canaries to detect writes beyond the payload.  
