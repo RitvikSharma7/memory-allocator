@@ -69,7 +69,7 @@ void memfree(void* ptr);
  * @param ptr Pointer to memory to resize. Can be NULL.
  * @param new_size New size in bytes.
  * @return void* Pointer to resized memory block, or NULL if allocation fails.
- * @note It is Thread-safe. May lead to fragmentation under heavy use.
+ * @note It is thread-safe. May lead to fragmentation under heavy use.
  */
 void* memresize(void* ptr, size_t new_size);
 

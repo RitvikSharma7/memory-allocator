@@ -33,7 +33,7 @@ _Static_assert(sizeof(block_header) % ALIGNMENT == 0, "header not aligned!");
 typedef struct block_footer {
     size_t size;          // payload size
 } block_footer;
-//_Static_assert(sizeof(block_footer) % ALIGNMENT == 0, "footer not aligned!"); Probably wont compile since size is only 8 bytes
+//_Static_assert(sizeof(block_footer) % ALIGNMENT == 0, "footer not aligned!"); Probably won't compile since size is only 8 bytes
 #define BLOCK_FOOTER_SIZE sizeof(block_footer)
 
 #define MIN_SPLIT (BLOCK_HEADER_SIZE + BLOCK_FOOTER_SIZE + ALIGNMENT)
