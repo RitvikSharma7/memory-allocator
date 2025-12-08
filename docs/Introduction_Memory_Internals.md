@@ -2,7 +2,7 @@
 
 By: Ritvik Sharma   
 University of Otago   
-BSC (Computer Science)
+BSC(Computer Science)
 
 
 Memory management is a cornerstone of system performance, reliability, and security, yet it often remains a riddle for many programmers. Memory Management can seem daunting at first, but if we break down it’s actually quite  a simple and elegant process.This article explores how memory is organized, allocated, and managed in Linux systems, with practical demonstrations using C. We’ll cover the virtual memory layout of a process, dynamic memory allocation, glibc’s malloc internals, and essential debugging tools like valgrind, gdb, and strace. I’ll also sprinkle in a bit of pointer manipulation, which will be helpful for directly accessing and manipulating memory. By the end, you’ll have a clearer understanding of how your programs use memory and how to optimize them effectively.
