@@ -2,6 +2,7 @@
 
 A lightweight custom memory allocator written in C, implementing:
 
+* Thread-safe
 * Free-list allocator
 * Block splitting
 * Coalescing (merge adjacent free blocks)
